@@ -267,6 +267,7 @@ REGIOND_COMMANDS = (
         "django.contrib.auth",
         "Change a MAAS user's password.",
     ),
+    ("config-oidc", "maasserver", None),
 )
 
 

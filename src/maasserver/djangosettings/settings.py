@@ -4,6 +4,7 @@
 """Django settings for maas project."""
 import logging
 import os
+import unicodedata
 
 from django.core.exceptions import ImproperlyConfigured
 
@@ -145,9 +146,33 @@ PISTON_DISPLAY_ERRORS = False
 PISTON_IGNORE_DUPE_MODELS = True
 
 AUTHENTICATION_BACKENDS = (
+    "maasserver.auth.OIDCAuthenticationBackend",
     "maasserver.auth.MAASAuthorizationBackend",
     "maasserver.macaroon_auth.MacaroonAuthorizationBackend",
 )
+
+# OIDC integration configuration.
+try:
+    with RegionConfiguration.open() as config:
+        OIDC_RP_CLIENT_ID = config.oidc_client_id
+        OIDC_RP_CLIENT_SECRET = config.oidc_client_secret
+        OIDC_RP_SIGN_ALGO = config.oidc_sign_algo
+        OIDC_RP_IDP_SIGN_KEY = config.oidc_sign_key
+        OIDC_OP_AUTHORIZATION_ENDPOINT = config.oidc_authorization_endpoint
+        OIDC_OP_TOKEN_ENDPOINT = config.oidc_token_endpoint
+        OIDC_OP_USER_ENDPOINT = config.oidc_user_endpoint
+        OIDC_VERIFY_SSL = config.oidc_endpoint_verify_ssl
+except Exception:
+    OIDC_RP_CLIENT_ID = ''
+    OIDC_RP_CLIENT_SECRET = ''
+    OIDC_RP_SIGN_ALGO = ''
+    OIDC_RP_IDP_SIGN_KEY = ''
+    OIDC_OP_AUTHORIZATION_ENDPOINT = ''
+    OIDC_OP_TOKEN_ENDPOINT = ''
+    OIDC_OP_USER_ENDPOINT = ''
+
+LOGIN_REDIRECT_URL = "/MAAS/r/dashboard"
+LOGOUT_REDIRECT_URL = "/MAAS/r"
 
 # Database access configuration.
 try:
@@ -259,6 +284,9 @@ MIDDLEWARE = (
     # Used to add external auth info to the request, to avoid getting the
     # information in multiple places.
     "maasserver.middleware.ExternalAuthInfoMiddleware",
+    # Used to add OIDC auth info to the request, to avoid getting the
+    # information in multiple places.
+    "maasserver.middleware.OIDCAuthInfoMiddleware",
     # Cookies to prevent CSRF.
     "django.middleware.csrf.CsrfViewMiddleware",
     # Creates request.user.
@@ -268,6 +296,8 @@ MIDDLEWARE = (
     "maasserver.middleware.AccessMiddleware",
     # Sets X-Frame-Options header to SAMEORIGIN.
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    # Validate OIDC ID tokens by renewing them
+    "mozilla_django_oidc.middleware.SessionRefresh",
 )
 
 ROOT_URLCONF = "maasserver.djangosettings.urls"
@@ -291,6 +321,7 @@ INSTALLED_APPS = (
     "maasserver",
     "metadataserver",
     "piston3",
+    "mozilla_django_oidc",
 )
 
 
