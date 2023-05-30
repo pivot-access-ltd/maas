@@ -1,0 +1,28 @@
+name: Build & Release Snap package
+
+on:
+  push:
+    tags:
+      - '*'
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: 'true'
+      - uses: snapcore/action-build@v1
+        id: snapcraft
+      - uses: actions/upload-artifact@v3
+        with:
+          name: maas.snap
+          path: ${{ steps.snapcraft.outputs.snap }}
+      - uses: ncipollo/release-action@v1
+        with:
+          artifacts: ${{ steps.snapcraft.outputs.snap }}
+          allowUpdates: 'true'
+          artifactErrorsFailBuild: 'true'
+
