@@ -4,7 +4,7 @@
 """Configuration for the MAAS region."""
 
 
-from formencode.validators import Int
+from formencode.validators import ByteString, Bool, Int, OneOf
 
 from provisioningserver.config import (
     Configuration,
@@ -148,4 +148,54 @@ class RegionConfiguration(Configuration, metaclass=RegionConfigurationMeta):
         "debug_http",
         "Enable HTTP debugging. Logs all HTTP requests and HTTP responses.",
         OneWayStringBool(if_missing=False),
+    )
+
+    # OIDC options.
+    oidc_client_id = ConfigurationOption(
+        "oidc_client_id",
+        "Client ID",
+        UnicodeString(if_missing="", accept_python=False),
+    )
+    oidc_client_secret = ConfigurationOption(
+        "oidc_client_secret",
+        "Client Secret",
+        UnicodeString(if_missing="", accept_python=False),
+    )
+    oidc_sign_algo = ConfigurationOption(
+        "oidc_sign_algo",
+        "OIDC Provider Signing Key Algorithm",
+        OneOf(['HS256', 'RS256'], if_missing="HS256", accept_python=False),
+    )
+    oidc_sign_key = ConfigurationOption(
+        "oidc_sign_key",
+        "OIDC Provider Signing Key in PEM or DER format",
+        ByteString(if_missing="", accept_python=False),
+    )
+    oidc_endpoint_verify_ssl = ConfigurationOption(
+        "oidc_endpoint_verify_ssl",
+        "Verify the SSL of the OIDC endpoints",
+        Bool(
+            if_missing=True, accept_python=False
+        ),
+    )
+    oidc_authorization_endpoint = ConfigurationOption(
+        "oidc_authorization_endpoint",
+        "URL of the OIDC OP authorization endpoint",
+        ExtendedURL(
+            require_tld=False, if_missing="", accept_python=False
+        ),
+    )
+    oidc_token_endpoint = ConfigurationOption(
+        "oidc_token_endpoint",
+        "URL of the OIDC OP token endpoint",
+        ExtendedURL(
+            require_tld=False, if_missing="", accept_python=False
+        ),
+    )
+    oidc_user_endpoint = ConfigurationOption(
+        "oidc_user_endpoint",
+        "URL of the OIDC OP userinfo endpoint",
+        ExtendedURL(
+            require_tld=False, if_missing="", accept_python=False
+        ),
     )

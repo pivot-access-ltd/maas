@@ -29,6 +29,7 @@ from django.utils.http import urlquote_plus
 
 from maasserver import logger
 from maasserver.clusterrpc.utils import get_error_message_for_exception
+from maasserver.config import RegionConfiguration
 from maasserver.exceptions import MAASAPIException
 from maasserver.rbac import rbac
 from maasserver.secrets import SecretManager
@@ -71,6 +72,10 @@ PUBLIC_URL_PREFIXES = [
     settings.API_URL_PREFIX,
     # Boot resources simple streams endpoint; no login.
     settings.SIMPLESTREAMS_URL_PREFIX,
+    # OIDC Login
+    reverse("oidc_authentication_init"),
+    reverse("oidc_authentication_callback"),
+    reverse("oidc_logout"),
 ]
 
 
@@ -447,6 +452,44 @@ class ExternalAuthInfoMiddleware:
             url=auth_endpoint.rstrip("/"),
             domain=auth_domain,
             admin_group=auth_admin_group,
+        )
+
+@dataclass
+class OIDCAuthInfo:
+    """Hold information about OIDC authentication."""
+
+    url: str
+
+class OIDCAuthInfoMiddleware:
+    """A Middleware adding information about the OIDC authentication.
+
+    This adds an `oidc_auth_info` attribute to the request, which is an
+    ExternalAuthInfo instance if OIDC authentication is enabled, None
+    otherwise.
+
+    """
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        request.oidc_auth_info = self._get_oidc_auth_info(request)
+        return self.get_response(request)
+
+    def _get_oidc_auth_info(self, request):
+        oidc_auth_url = ''
+        try:
+            with RegionConfiguration.open() as config:
+                if (config.oidc_client_id and config.oidc_client_secret and
+                    config.oidc_sign_algo and config.oidc_sign_key and
+                    config.oidc_authorization_endpoint and config.oidc_token_endpoint and config.oidc_user_endpoint):
+                    # strip trailing slashes as otherwise js-bakery ends up using double
+                    # slashes in the URL
+                    oidc_auth_url = request.build_absolute_uri(reverse("oidc_authentication_init")).rstrip("/")
+        except Exception:
+            oidc_auth_url = ''
+        return OIDCAuthInfo(
+            url=oidc_auth_url,
         )
 
 

@@ -56,6 +56,9 @@ def login(request):
             "external_auth_url": request.external_auth_info.url
             if request.external_auth_info
             else None,
+            "oidc_auth_url": request.oidc_auth_info.url
+            if request.oidc_auth_info
+            else None,
             "no_users": not UserProfile.objects.all_users().exists(),
         }
     )
